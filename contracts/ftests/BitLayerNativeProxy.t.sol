@@ -6,6 +6,7 @@ import {uniBTC} from "../contracts/uniBTC.sol";
 import {Vault} from "../contracts/Vault.sol";
 import {BitLayerNativeProxy} from "../contracts/proxies/stateful/BitLayerNativeProxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/utils/Create2.sol";
 
 contract BitLayerNativeProxyTest is Test {
     TransparentUpgradeableProxy public vaultProxy;
@@ -21,7 +22,7 @@ contract BitLayerNativeProxyTest is Test {
         defaultAdmin = vm.addr(1);
         bitLayerRole = vm.addr(2);
         uniBTC = vm.addr(3);
-
+        vm.startPrank(vm.addr(89));
         // deploy vault
         Vault vaultImplementation = new Vault();
         vaultProxy = new TransparentUpgradeableProxy(address(vaultImplementation), vm.addr(4), abi.encodeCall(vaultImplementation.initialize, (defaultAdmin, uniBTC)));
@@ -29,8 +30,18 @@ contract BitLayerNativeProxyTest is Test {
 
         // deploy bitLayerProxy
         BitLayerNativeProxy implementation = new BitLayerNativeProxy();
-        bitLayerProxy = new TransparentUpgradeableProxy(address(implementation), vm.addr(4), abi.encodeCall(implementation.initialize, (defaultAdmin, address(vaultProxy))));
+//        bitLayerProxy = new TransparentUpgradeableProxy(address(implementation), vm.addr(4), abi.encodeCall(implementation.initialize, (defaultAdmin, address(vaultProxy))));
+
+        bytes memory bytecode = abi.encodePacked(
+            type(TransparentUpgradeableProxy).creationCode,
+            abi.encode(implementation, vm.addr(89), abi.encodeCall(implementation.initialize, (defaultAdmin, address(vaultProxy))))
+        );
+        address computProxyAddressCreate2 = Create2.computeAddress(keccak256("proxy..."), keccak256(bytecode), vm.addr(89));
+        console.log("computProxyAddressCreate2:", computProxyAddressCreate2);
+        address bitLayerProxy = Create2.deploy(0, keccak256("proxy..."), bytecode);
         bitLayerNative = BitLayerNativeProxy(payable(bitLayerProxy));
+        assertEq(computProxyAddressCreate2, bitLayerProxy);
+        vm.stopPrank();
 
         vm.startPrank(defaultAdmin);
         bitLayerNative.grantRole(keccak256("BITLAYER_ROLE"), bitLayerRole);
@@ -130,5 +141,28 @@ contract BitLayerNativeProxyTest is Test {
         vm.prank(defaultAdmin);
         vm.expectRevert("USR015");
         bitLayerNative.unStake(6 ether);//none
+    }
+
+    function test_DepolyAddress() public {
+        // deploy bitLayerProxy
+        address deploy = vm.addr(34);
+        vm.startPrank(deploy);
+        address implementationAddr = computeCreateAddress(deploy, vm.getNonce(deploy));
+        console.log("compute implementation:", implementationAddr);
+        BitLayerNativeProxy implementation = new BitLayerNativeProxy();
+        console.log("actual implementation:", address(implementation));
+        assertEq(address(implementation), implementationAddr);
+//        bitLayerProxy = new TransparentUpgradeableProxy(address(implementation), vm.addr(4), abi.encodeCall(implementation.initialize, (defaultAdmin, address(vaultProxy))));
+//        bitLayerNative = BitLayerNativeProxy(payable(bitLayerProxy));
+        // constructor params
+        bytes memory bytecode = abi.encodePacked(
+            type(TransparentUpgradeableProxy).creationCode,
+            abi.encode(implementation, deploy, abi.encodeCall(implementation.initialize, (defaultAdmin, address(vaultProxy))))
+        );
+        address computProxyAddressCreate2 = Create2.computeAddress(keccak256("proxy..."), keccak256(bytecode), deploy);
+        console.log("computProxyAddressCreate2:", computProxyAddressCreate2);
+        address actualProxy = Create2.deploy(0, keccak256("proxy..."), bytecode);
+        console.log("actual :", address(actualProxy));
+        vm.stopPrank();
     }
 }
