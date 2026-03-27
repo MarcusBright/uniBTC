@@ -32,21 +32,8 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
         redeemContract = _redeemContract;
     }
 
-    function _transfer(address, address, uint256) internal pure override {
-        revert("TRANSFER_NOT_SUPPORTED");
-    }
-
-    function _withdraw(address, address, address, uint256, uint256) internal pure override {
-        revert("NOT_SYNCED_WITH_REDEEM");
-    }
-
     function totalAssets() public view override returns (uint256) {
         return totalRealizedProfit + totalDeposited - totalRedeemed;
-    }
-
-    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
-        totalDeposited += assets;
-        super._deposit(caller, receiver, assets, shares);
     }
 
     function requestWithdraw(uint256 assets, address receiver, address owner) external returns (uint256) {
@@ -65,19 +52,6 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
         _requestWithdraw(_msgSender(), receiver, owner, assets, shares);
 
         return assets;
-    }
-
-    function _requestWithdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
-        internal
-    {
-        totalRedeemed += assets;
-        debt += assets;
-        if (caller != owner) {
-            _spendAllowance(owner, caller, shares);
-        }
-        _burn(owner, shares);
-        emit Withdraw(caller, receiver, owner, assets, shares);
-        //call redeem contract to redeem
     }
 
     function supplyFundsToRedeem(uint256 assets) external onlyRole(OPERATOR_ROLE) {
@@ -104,5 +78,31 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
         (bool success, bytes memory result) = target.call{value: value}(data);
         require(success, "External call failed");
         return result;
+    }
+
+    function _transfer(address, address, uint256) internal pure override {
+        revert("TRANSFER_NOT_SUPPORTED");
+    }
+
+    function _withdraw(address, address, address, uint256, uint256) internal pure override {
+        revert("NOT_SYNCED_WITH_REDEEM");
+    }
+
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+        totalDeposited += assets;
+        super._deposit(caller, receiver, assets, shares);
+    }
+
+    function _requestWithdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
+        internal
+    {
+        totalRedeemed += assets;
+        debt += assets;
+        if (caller != owner) {
+            _spendAllowance(owner, caller, shares);
+        }
+        _burn(owner, shares);
+        emit Withdraw(caller, receiver, owner, assets, shares);
+        //call redeem contract to redeem
     }
 }

@@ -244,7 +244,7 @@ contract KelpVaultTest is Test {
                 console.log("round", i, v.convertToAssets(100_000_000));
             } else {
                 // operator supply
-                uint256 prevDebt = v.debt();
+                uint256 prevDebt_ = v.debt();
                 uint256 amt = ((r % 500) + 1) * 10000;
                 vm.prank(minter);
                 u.mint(operator, amt);
@@ -253,7 +253,7 @@ contract KelpVaultTest is Test {
                 vm.prank(operator);
                 v.supplyFundsToRedeem(amt);
                 console.log("round", i, "operator supply", amt);
-                console.log("---prevDebt", prevDebt, "cur", v.convertToAssets(100_000_000));
+                console.log("---prevDebt", prevDebt_, "cur", v.convertToAssets(100_000_000));
             }
         }
     }
