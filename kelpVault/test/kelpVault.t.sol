@@ -173,6 +173,27 @@ contract KelpVaultTest is Test {
         v.execute(address(target), 0, abi.encodeWithSelector(TargetMock.ping.selector));
     }
 
+    function testIsOperatingPeriodAndIsLockupPeriod() public {
+        // initial state should be operating period
+        console.log("block:", block.number);
+        console.log("startGenesis", v.startGenesis());
+        console.log("operatingPeriod", v.operatingPeriod());
+        console.log("lockupPeriod", v.lockupPeriod());
+        assertTrue(v.isOperatingPeriod());
+        assertFalse(v.isLockupPeriod());
+
+        // advance to lockup period
+        uint256 totalPeriod = v.operatingPeriod() + v.lockupPeriod();
+        vm.roll(block.number + v.operatingPeriod() + 1);
+        assertFalse(v.isOperatingPeriod());
+        assertTrue(v.isLockupPeriod());
+
+        // advance to next operating period
+        vm.roll(block.number + v.lockupPeriod() + 1);
+        assertTrue(v.isOperatingPeriod());
+        assertFalse(v.isLockupPeriod());
+    }
+
     function testSingleUserSequence_printConvertToAssets() public {
         // single user flow: mint, deposit, withdraw, operator supplies, redeem
         // initial mint and approve

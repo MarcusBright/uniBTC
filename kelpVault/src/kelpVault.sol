@@ -19,6 +19,10 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
     uint256 public debt;
     uint256 public totalRealizedProfit;
 
+    uint256 public operatingPeriod;
+    uint256 public lockupPeriod;
+    uint256 public startGenesis;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -30,10 +34,42 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
         __ERC4626_init(IERC20Upgradeable(_uniBTC));
         _grantRole(DEFAULT_ADMIN_ROLE, _defaultAdmin);
         redeemContract = _redeemContract;
+        startGenesis = block.number;
+        operatingPeriod = 7200 * 7;
+        lockupPeriod = 7200 * 30;
+    }
+
+    function isOperatingPeriod() public view returns (bool) {
+        uint256 delta = block.number - startGenesis;
+        uint256 mod = delta % (operatingPeriod + lockupPeriod);
+        if (mod < operatingPeriod) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function isLockupPeriod() public view returns (bool) {
+        uint256 delta = block.number - startGenesis;
+        uint256 mod = delta % (operatingPeriod + lockupPeriod);
+        if (mod >= operatingPeriod) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     function totalAssets() public view override returns (uint256) {
         return totalRealizedProfit + totalDeposited - totalRedeemed;
+    }
+
+    function setPeriod(uint256 _start, uint256 _operatingPeriod, uint256 _lockupPeriod)
+        external
+        onlyRole(OPERATOR_ROLE)
+    {
+        startGenesis = _start;
+        operatingPeriod = _operatingPeriod;
+        lockupPeriod = _lockupPeriod;
     }
 
     function requestWithdraw(uint256 assets, address receiver, address owner) external returns (uint256) {
@@ -55,6 +91,7 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
     }
 
     function supplyFundsToRedeem(uint256 assets) external onlyRole(OPERATOR_ROLE) {
+        require(isLockupPeriod(), "Not in lockup period");
         SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(super.asset()), msg.sender, address(this), assets);
         if (assets <= debt) {
             debt -= assets;
@@ -89,6 +126,7 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
     }
 
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+        require(isOperatingPeriod(), "Not in operating period");
         totalDeposited += assets;
         super._deposit(caller, receiver, assets, shares);
     }
@@ -96,6 +134,7 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
     function _requestWithdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
         internal
     {
+        require(isOperatingPeriod(), "Not in operating period");
         totalRedeemed += assets;
         debt += assets;
         if (caller != owner) {
