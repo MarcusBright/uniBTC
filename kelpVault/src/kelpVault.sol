@@ -36,6 +36,10 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
         revert("TRANSFER_NOT_SUPPORTED");
     }
 
+    function _withdraw(address, address, address, uint256, uint256) internal pure override {
+        revert("NOT_SYNCED_WITH_REDEEM");
+    }
+
     function totalAssets() public view override returns (uint256) {
         return totalRealizedProfit + totalDeposited - totalRedeemed;
     }
@@ -45,9 +49,26 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
         super._deposit(caller, receiver, assets, shares);
     }
 
-    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
+    function requestWithdraw(uint256 assets, address receiver, address owner) external returns (uint256) {
+        require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
+
+        uint256 shares = previewWithdraw(assets);
+        _requestWithdraw(_msgSender(), receiver, owner, assets, shares);
+
+        return shares;
+    }
+
+    function requestRedeem(uint256 shares, address receiver, address owner) external returns (uint256) {
+        require(shares <= maxRedeem(owner), "ERC4626: redeem more than max");
+
+        uint256 assets = previewRedeem(shares);
+        _requestWithdraw(_msgSender(), receiver, owner, assets, shares);
+
+        return assets;
+    }
+
+    function _requestWithdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
         internal
-        override
     {
         totalRedeemed += assets;
         debt += assets;
@@ -60,14 +81,13 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
     }
 
     function supplyFundsToRedeem(uint256 assets) external onlyRole(OPERATOR_ROLE) {
+        SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(super.asset()), msg.sender, address(this), assets);
         if (assets <= debt) {
             debt -= assets;
-            SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(super.asset()), msg.sender, redeemContract, assets);
+            SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(super.asset()), redeemContract, assets);
         } else {
             if (debt > 0) {
-                SafeERC20Upgradeable.safeTransferFrom(
-                    IERC20Upgradeable(super.asset()), msg.sender, redeemContract, debt
-                );
+                SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(super.asset()), redeemContract, debt);
             }
             uint256 remaining = assets - debt;
             debt = 0;

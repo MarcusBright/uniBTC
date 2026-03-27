@@ -90,7 +90,7 @@ contract KelpVaultTest is Test {
 
         // withdraw 200
         vm.prank(user);
-        v.withdraw(200, user, user);
+        v.requestWithdraw(200, user, user);
         console.log("r", v.convertToAssets(1));
 
         assertEq(v.totalRedeemed(), 200);
@@ -106,7 +106,7 @@ contract KelpVaultTest is Test {
         vm.prank(user);
         v.deposit(500, user);
         vm.prank(user);
-        v.withdraw(300, user, user);
+        v.requestWithdraw(300, user, user);
 
         // operator gets tokens and approves vault
         vm.prank(minter);
@@ -131,7 +131,7 @@ contract KelpVaultTest is Test {
         vm.prank(user);
         v.deposit(500, user);
         vm.prank(user);
-        v.withdraw(100, user, user);
+        v.requestWithdraw(100, user, user);
 
         // operator gets tokens and approves vault
         vm.prank(minter);
@@ -152,7 +152,7 @@ contract KelpVaultTest is Test {
         console.log("kuniBalance", v.balanceOf(user));
         console.log("kuniAssets", v.previewRedeem(v.balanceOf(user)));
         vm.prank(user);
-        v.redeem(100, user, user);
+        v.requestRedeem(100, user, user);
         // 300 + 500 - 275
         console.log("assets", v.totalAssets());
         console.log("r", v.convertToAssets(100_000_000));
@@ -190,7 +190,7 @@ contract KelpVaultTest is Test {
 
         // withdraw 200 * 10000
         vm.prank(user);
-        v.withdraw(200 * 10000, user, user);
+        v.requestWithdraw(200 * 10000, user, user);
         console.log("after withdraw 2000000", v.convertToAssets(100_000_000));
 
         // operator supplies <= debt (no profit expected)
@@ -218,7 +218,7 @@ contract KelpVaultTest is Test {
         if (bal > 0) {
             uint256 redeemShares = bal > 50 ? 50 : bal;
             vm.prank(user);
-            v.redeem(redeemShares, user, user);
+            v.requestRedeem(redeemShares, user, user);
             console.log("after redeem", v.convertToAssets(100_000_000));
         }
 
@@ -239,7 +239,7 @@ contract KelpVaultTest is Test {
                 // user withdraw
                 uint256 amt = ((r % 200) + 1) * 10000;
                 vm.prank(user);
-                v.withdraw(amt, user, user);
+                v.requestWithdraw(amt, user, user);
                 console.log("round", i, "user withdraw", amt);
                 console.log("round", i, v.convertToAssets(100_000_000));
             } else {
@@ -256,9 +256,5 @@ contract KelpVaultTest is Test {
                 console.log("---prevDebt", prevDebt, "cur", v.convertToAssets(100_000_000));
             }
         }
-    }
-
-    function testPrecison() public view {
-        console.log("deposit", v.previewDeposit(1));
     }
 }
