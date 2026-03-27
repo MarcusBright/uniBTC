@@ -11,7 +11,6 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 
 contract kuniBTC is Initializable, ERC20Upgradeable, ERC20BurnableUpgradeable, AccessControlUpgradeable {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    bytes32 public constant FREEZER_ROLE = keccak256("FREEZER_ROLE");
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
