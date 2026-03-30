@@ -63,6 +63,16 @@ contract KelpVault is Initializable, AccessControlUpgradeable, ERC4626Upgradeabl
         return totalRealizedProfit + totalDeposited - totalRedeemed;
     }
 
+    function periodRemain() external view returns (uint256) {
+        uint256 delta = block.number - startGenesis;
+        uint256 mod = delta % (operatingPeriod + lockupPeriod);
+        if (mod < operatingPeriod) {
+            return operatingPeriod - mod;
+        } else {
+            return operatingPeriod + lockupPeriod - mod;
+        }
+    }
+
     function setPeriod(uint256 _start, uint256 _operatingPeriod, uint256 _lockupPeriod)
         external
         onlyRole(OPERATOR_ROLE)
