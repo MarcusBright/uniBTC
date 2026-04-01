@@ -4,13 +4,12 @@ pragma solidity ^0.8.17;
 
 import {Script, console} from "forge-std/Script.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-//forge script fscripts/deploy_proxyAdmin.s.sol --rpc-url $RPC_ETH_SEPOLIA --account $DEPLOYER --broadcast --verify --verifier-url $RPC_ETH_SEPOLIA_SCAN --etherscan-api-key $KEY_ETH_SEPOLIA_SCAN --delay 30
+//forge script fscripts/deploy_proxyAdmin.s.sol --sig 'run(address)' $OWNER_ADDRESS --rpc-url $RPC_ETH_HOODI --account $DEPLOYER --broadcast \
+//--verify --verifier-url $RPC_ETH_HOODI_SCAN --etherscan-api-key $KEY_ETH_HOODI_SCAN --delay 30
 
-contract Depoly is Script {
-    function run() external {
-        address owner = vm.envAddress("OWNER_ADDRESS");
-
-        vm.startBroadcast(vm.envAddress("DEPLOYER_ADDRESS"));
+contract Deploy is Script {
+    function run(address owner) external {
+        vm.startBroadcast();
         ProxyAdmin adminInstance = new ProxyAdmin();
         adminInstance.transferOwnership(owner);
         vm.stopBroadcast();
