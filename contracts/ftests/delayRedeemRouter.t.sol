@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {DelayRedeemRouter} from "../contracts/proxies/stateful/redeem/DelayRedeemRouter.sol";
+import {DelayRedeemRouter} from "../contracts/proxies/stateful/redeem/cDelayRedeemRouter.sol";
 
 contract DelayRedeemRouterTest is Test {
     DelayRedeemRouter public delayRedeemRouter;
@@ -23,6 +23,7 @@ contract DelayRedeemRouterTest is Test {
     //forge test --match-contract DelayRedeemRouterTest --match-test "test_create" --rpc-url $RPC_ETH_HOODI
     function test_create() public {
         vm.prank(user);
+        vm.roll(block.number + 7200);
         delayRedeemRouter.createDelayedRedeem(0x2bDbE26A6abD06B4561D98Aea9dD604a1A676eEe, 1000000000);
     }
 }

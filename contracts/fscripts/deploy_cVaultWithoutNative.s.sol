@@ -5,6 +5,8 @@ pragma solidity ^0.8.17;
 import {Script, console} from "forge-std/Script.sol";
 import {CVaultWithoutNative} from "../contracts/cVaultWithoutNative.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 contract Deploy is Script {
     //forge script fscripts/deploy_cVaultWithoutNative.s.sol --sig 'deploy(address,address,address)' \
@@ -22,5 +24,17 @@ contract Deploy is Script {
         console.log("proxyAdmin", proxyAdmin);
         console.log("defaultAdmin", defaultAdmin);
         console.log("cuniBTC", cuniBTC);
+    }
+
+    //forge script fscripts/deploy_cVaultWithoutNative.s.sol --sig 'upgrade(address,address)' \
+    //$PROXY_ADMIN $CVAULT_ADDRESS \
+    //--rpc-url $RPC_ETH_HOODI --account $OWNER --broadcast \
+    //--verify --verifier-url $RPC_ETH_HOODI_SCAN --etherscan-api-key $KEY_ETH_HOODI_SCAN --delay 30
+    function upgrade(address proxyAdmin, address cvault) external {
+        vm.startBroadcast();
+        CVaultWithoutNative newImplementation = new CVaultWithoutNative();
+        ProxyAdmin pAdmin = ProxyAdmin(proxyAdmin);
+        pAdmin.upgrade(ITransparentUpgradeableProxy(payable(cvault)), address(newImplementation));
+        vm.stopBroadcast();
     }
 }

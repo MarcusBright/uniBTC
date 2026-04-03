@@ -37,6 +37,10 @@ contract CVaultWithoutNative is
     mapping(address => bool) public allowedTargetList;
     bool public outOfService;
 
+    uint256 public operatePeriod;
+    uint256 public lockupPeriod;
+    uint256 public startGenesis;
+
     receive() external payable {}
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -54,6 +58,7 @@ contract CVaultWithoutNative is
      */
     function mint(address _token, uint256 _amount) external serviceNormal {
         require(allowedTokenList[_token] && !paused[_token], "SYS002");
+        require(isOperatePeriod(), "Not in operating period");
         _mint(msg.sender, _token, _amount);
     }
 
@@ -67,6 +72,30 @@ contract CVaultWithoutNative is
     {
         require(allowedTargetList[_target], "SYS001");
         return _target.functionCallWithValue(_data, _value);
+    }
+
+    function isOperatePeriod() public view returns (bool) {
+        uint256 delta = block.number - startGenesis;
+        uint256 mod = delta % (operatePeriod + lockupPeriod);
+        if (mod < operatePeriod) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function isLockupPeriod() public view returns (bool) {
+        return !isOperatePeriod();
+    }
+
+    function periodRemain() external view returns (uint256) {
+        uint256 delta = block.number - startGenesis;
+        uint256 mod = delta % (operatePeriod + lockupPeriod);
+        if (mod < operatePeriod) {
+            return operatePeriod - mod;
+        } else {
+            return operatePeriod + lockupPeriod - mod;
+        }
     }
 
     /**
@@ -87,6 +116,9 @@ contract CVaultWithoutNative is
         _grantRole(PAUSER_ROLE, _defaultAdmin);
 
         cuniBTC = _cuniBTC;
+        startGenesis = block.number;
+        operatePeriod = 7200 * 7; //7day
+        lockupPeriod = 7200 * 30; //30day
     }
 
     /**
@@ -178,6 +210,15 @@ contract CVaultWithoutNative is
         require(decs == 8 || decs == 18, "SYS004");
 
         caps[_token] = _cap;
+    }
+
+    function setPeriod(uint256 _start, uint256 _operatePeriod, uint256 _lockupPeriod)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        startGenesis = _start;
+        operatePeriod = _operatePeriod;
+        lockupPeriod = _lockupPeriod;
     }
 
     /**
