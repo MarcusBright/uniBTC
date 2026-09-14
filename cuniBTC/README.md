@@ -69,7 +69,7 @@ forge script script/SymbioticProxy.s.sol --sig 'deploy(address,address,address,a
 
 
 
-# Hoodi
+# Hoodi [deprecated‌]
 ## ProxyAdmin
 0xB36F69446C756831cCE73bb35bb2D6f75007212c
 ## uniBTC
@@ -84,6 +84,58 @@ forge script script/SymbioticProxy.s.sol --sig 'deploy(address,address,address,a
   deploy airdrop implementation at 0x919B67b5949CF892Cbff9B3708f3c150C6a4aD55
   deploy delayredeemrouter implementation at 0xE17A430d8f9f1BCB5C8e3842EC5BC7362Ed676D7
 ```
+# Sepolia
+## ProxyAdmin
+```
+forge script script/proxyAdmin.s.sol --sig 'run(address)' $OWNER_ADDRESS --rpc-url $RPC_ETH_SEPOLIA --account $DEPLOYER --broadcast \
+--verify --verifier-url $RPC_ETH_SEPOLIA_SCAN --etherscan-api-key $KEY_ETH_SEPOLIA_SCAN --delay 30
+== Logs ==
+  ProxyAdmin address: 0x285AFd3688a20aa854b9AED89e538CF85177b458
+  ProxyAdmin owner: 0xac07f2721EcD955c4370e7388922fA547E922A4f
+```
+## uniBTC
+```
+forge script script/uniBTC.s.sol --sig 'run(address,address)' 0x285AFd3688a20aa854b9AED89e538CF85177b458 $OWNER_ADDRESS \
+--rpc-url $RPC_ETH_SEPOLIA --account $DEPLOYER --broadcast \
+--verify --verifier-url $RPC_ETH_SEPOLIA_SCAN --etherscan-api-key $KEY_ETH_SEPOLIA_SCAN --delay 30
+== Logs ==
+  uniBTC Proxy address: 0x79cf1Cf70b4aEF73E15a7B14Efb314D2FDE7C53d
+  uniBTC Proxy Admin address: 0x285AFd3688a20aa854b9AED89e538CF85177b458
+  uniBTC owner: 0xac07f2721EcD955c4370e7388922fA547E922A4f
+```
+## deploy implemention
+```
+forge script script/defaultImpl.s.sol --sig 'deploy()' \
+--rpc-url $RPC_ETH_SEPOLIA --account $DEPLOYER --broadcast \
+--verify --verifier-url $RPC_ETH_SEPOLIA_SCAN --etherscan-api-key $KEY_ETH_SEPOLIA_SCAN --delay 30
+== Logs ==
+  deploy cuniBTC implementation at 0x6F10dC7dc5ff3Cbb7C18B324AbDC05fADe601370
+  deploy vault implementation at 0x98eE5a25E100eBFd39329516d9457973293c4153
+  deploy airdrop implementation at 0x581d1860AeC248BB59E8f8345C70dA71dFDeA31D
+  deploy delayredeemrouter implementation at 0xF04Cb14F13144505eB93a165476f1259A1538303
+```
+## deploy factory
+```bash
+forge script script/factory.sol --sig 'deploy(address,address,address,address,address)' \
+0x285AFd3688a20aa854b9AED89e538CF85177b458 0x6F10dC7dc5ff3Cbb7C18B324AbDC05fADe601370 0x98eE5a25E100eBFd39329516d9457973293c4153 0x581d1860AeC248BB59E8f8345C70dA71dFDeA31D 0xF04Cb14F13144505eB93a165476f1259A1538303 \
+--rpc-url $RPC_ETH_SEPOLIA --account $DEPLOYER --broadcast \
+--verify --verifier-url $RPC_ETH_SEPOLIA_SCAN --etherscan-api-key $KEY_ETH_SEPOLIA_SCAN --delay 30
+== Logs ==
+  deploy factory proxy at 0x1ed0b3ecF82483113CEc5c0769f661Dd392995c1
+  proxyAdmin 0x285AFd3688a20aa854b9AED89e538CF85177b458
+```
+## create suniBTC Strategy
+```bash
+forge script script/factory.sol --sig 'createStrategy(address,string,string,address,address,uint256)' \
+0x1ed0b3ecF82483113CEc5c0769f661Dd392995c1 "suniBTC" "suniBTC" $OWNER_ADDRESS \
+0x79cf1Cf70b4aEF73E15a7B14Efb314D2FDE7C53d 40e8 \
+--rpc-url $RPC_ETH_SEPOLIA --account $DEPLOYER --broadcast
+```
+## e2e test
+```bash
+TOKEN_SYMBOL="suniBTC" forge test test/Factoryfork.t.sol --match-test 'testE2E' --rpc-url $RPC_ETH_SEPOLIA
+```
+
 
 ## Foundry
 
